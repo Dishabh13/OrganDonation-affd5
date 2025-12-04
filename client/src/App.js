@@ -1,23 +1,42 @@
-import React, { useState } from "react";
+// client/src/App.js
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+import LandingPage from "./components/LandingPage";
+import Login from "./components/Login";
+import Register from "./components/Register";
 import DonorForm from "./components/DonorForm";
 import RecipientForm from "./components/RecipientForm";
+import HospitalForm from "./components/HospitalForm";
+import DonorDashboard from "./components/DonorDashboard";
+import RecipientDashboard from "./components/RecipientDashboard";
+import HospitalDashboard from "./components/HospitalDashboard";
+import MatchResults from "./components/MatchResults";
+
+import "./styles.css";
 
 function App() {
-  const [view, setView] = useState("home");
-
   return (
-    <div className="container">
-      <h1>Organ Donation System</h1>
-      <nav>
-        <button onClick={() => setView("donor")}>Donor Form</button>
-        <button onClick={() => setView("recipient")}>Recipient Form</button>
-        <button onClick={() => setView("home")}>Home</button>
-      </nav>
+    <Router>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-      {view === "donor" && <DonorForm />}
-      {view === "recipient" && <RecipientForm />}
-      {view === "home" && <p>Welcome! Choose a form to get started.</p>}
-    </div>
+        {/* Registration Forms */}
+        <Route path="/register/donor" element={<DonorForm />} />
+        <Route path="/register/recipient" element={<RecipientForm />} />
+        <Route path="/register/hospital" element={<HospitalForm />} />
+
+        {/* Dashboards */}
+        <Route path="/dashboard/donor" element={<DonorDashboard />} />
+        <Route path="/dashboard/recipient" element={<RecipientDashboard />} />
+        <Route path="/dashboard/hospital" element={<HospitalDashboard />} />
+
+        {/* Matching */}
+        <Route path="/matches" element={<MatchResults />} />
+      </Routes>
+    </Router>
   );
 }
 

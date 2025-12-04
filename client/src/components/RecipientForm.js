@@ -1,40 +1,147 @@
 import React, { useState } from "react";
-import { db } from "../firebaseConfig";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../firebaseConfig";
+import { createRecipient } from "../services/firestore";
+import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
 
-function RecipientForm() {
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("");
-  const [bloodGroup, setBloodGroup] = useState("");
-  const [organNeeded, setOrganNeeded] = useState("");
+export default function RecipientForm() {
+  const [form, setForm] = useState({
+    name: "",
+    age: "",
+    bloodGroup: "",
+    organNeeded: "",
+    urgencyLevel: "",
+    city: "",
+    state: "",
+    lat: "",
+    lng: ""
+  });
 
-  const handleSubmit = async (e) => {
+  const navigate = useNavigate();
+
+  const update = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const saveRecipient = async (e) => {
     e.preventDefault();
+
     try {
-      await addDoc(collection(db, "Recipients"), {
-        name,
-        age: parseInt(age),
-        bloodGroup,
-        organNeeded,
-        timestamp: serverTimestamp(),
+      const recipientData = {
+        name: form.name,
+        age: Number(form.age),
+        bloodGroup: form.bloodGroup,
+        organNeeded: form.organNeeded,
+        urgencyLevel: Number(form.urgencyLevel),
+        location: {
+          city: form.city,
+          state: form.state,
+          lat: Number(form.lat),
+          lng: Number(form.lng)
+        }
+      };
+
+      // 1. Create recipient document
+      const ref = await createRecipient(recipientData);
+
+      // 2. Link to user document
+      const uid = auth.currentUser.uid;
+
+      const q = query(collection(db, "users"), where("userId", "==", uid));
+      const snap = await getDocs(q);
+      const userDoc = snap.docs[0];
+
+      await updateDoc(doc(db, "users", userDoc.id), {
+        linkedRecipientId: ref.id
       });
-      alert("Recipient added successfully!");
-      setName(""); setAge(""); setBloodGroup(""); setOrganNeeded("");
+
+      alert("Recipient registered successfully!");
+      navigate("/dashboard/recipient");
+
     } catch (err) {
-      console.error("Error adding recipient:", err);
+      alert("Error: " + err.message);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Recipient Form</h2>
-      <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} required />
-      <input placeholder="Age" value={age} onChange={(e) => setAge(e.target.value)} required type="number"/>
-      <input placeholder="Blood Group" value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value)} required />
-      <input placeholder="Organ Needed" value={organNeeded} onChange={(e) => setOrganNeeded(e.target.value)} required />
-      <button type="submit">Submit</button>
-    </form>
+    <div className="container">
+      <h2>Recipient Registration</h2>
+
+      <form onSubmit={saveRecipient}>
+        <input
+          name="name"
+          placeholder="Full Name"
+          value={form.name}
+          onChange={update}
+          required
+        />
+        <input
+          name="age"
+          type="number"
+          placeholder="Age"
+          value={form.age}
+          onChange={update}
+          required
+        />
+        <input
+          name="bloodGroup"
+          placeholder="Blood Group (A+, O-, etc)"
+          value={form.bloodGroup}
+          onChange={update}
+          required
+        />
+        <input
+          name="organNeeded"
+          placeholder="Organ Needed"
+          value={form.organNeeded}
+          onChange={update}
+          required
+        />
+        <input
+          name="urgencyLevel"
+          type="number"
+          placeholder="Urgency Level (1-5)"
+          value={form.urgencyLevel}
+          onChange={update}
+          required
+        />
+
+        <h4>Location</h4>
+        <input
+          name="city"
+          placeholder="City"
+          value={form.city}
+          onChange={update}
+          required
+        />
+        <input
+          name="state"
+          placeholder="State"
+          value={form.state}
+          onChange={update}
+          required
+        />
+        <input
+          name="lat"
+          type="number"
+          step="any"
+          placeholder="Latitude"
+          value={form.lat}
+          onChange={update}
+          required
+        />
+        <input
+          name="lng"
+          type="number"
+          step="any"
+          placeholder="Longitude"
+          value={form.lng}
+          onChange={update}
+          required
+        />
+
+        <button className="btn" type="submit">Submit</button>
+      </form>
+    </div>
   );
 }
-
-export default RecipientForm;
