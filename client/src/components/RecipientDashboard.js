@@ -1,4 +1,3 @@
-// client/src/components/RecipientDashboard.js
 
 import React, { useEffect, useState } from "react";
 import { auth } from "../firebaseConfig";
@@ -7,11 +6,14 @@ import { getAllRecipients, findBestMatches } from "../services/firestore";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { getAllDonors } from "../services/firestore";
+import { sendMatchRequest, assignHospital } from "../services/firestore";
+
 
 export default function RecipientDashboard() {
   const [recipientInfo, setRecipientInfo] = useState({});
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
 
   useEffect(() => {
     const load = async () => {
@@ -41,21 +43,6 @@ export default function RecipientDashboard() {
     load();
   }, [navigate]);
 
-//   const findMatch = async () => {
-//     try {
-//       const best = await findBestMatches(recipientInfo.id);
-
-//       if (!best || best.length === 0) {
-//         return alert("No matches available.");
-//       }
-
-//       localStorage.setItem("matchResults", JSON.stringify(best));
-//       navigate("/matches");
-//     } catch (err) {
-//       console.error("Error finding matches:", err);
-//       alert("Failed to find matches.");
-//     }
-//   };
 function calculateScore(donor, recipient) {
   let score = 0;
 
@@ -70,10 +57,10 @@ function calculateScore(donor, recipient) {
   return score;
 }
 
-const findMatch = async () => {
-  const donors = await getAllDonors(); // fetch all donors from Firestore
 
-  // filter donors who match this recipient
+const findMatch = async () => {
+  const donors = await getAllDonors();
+
   const best = donors
     .filter(donor =>
       donor.bloodGroup === recipientInfo.bloodGroup &&
@@ -82,18 +69,24 @@ const findMatch = async () => {
     .map(donor => ({
       organ: recipientInfo.organNeeded,
       donorId: donor.id,
-      donorName: donor.name,             // <-- add this
-      donorBloodGroup: donor.bloodGroup, // <-- add this
+      donorName: donor.name,
+      donorBloodGroup: donor.bloodGroup,
       location: donor.location,
-      matchScore: calculateScore(donor, recipientInfo), // optional function
-      status: "Pending"                  // or existing status if you have one
+      matchScore: calculateScore(donor, recipientInfo),
+      recipientId: recipientInfo.id,
+      recipientName: recipientInfo.name,
     }));
 
   if (best.length === 0) return alert("No matches available.");
 
-  localStorage.setItem("matchResults", JSON.stringify(best));
-  navigate("/matches");
+  // Send pending requests to donors
+  for (const match of best) {
+    await sendMatchRequest(match);
+  }
+
+  alert("Match requests sent! Donors will review and accept/reject.");
 };
+
 
   const handleLogout = async () => {
     try {

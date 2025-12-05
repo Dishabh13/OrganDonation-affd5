@@ -1,17 +1,8 @@
-// client/src/services/firestore.js
-
-import { 
-  collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, 
-  serverTimestamp, query, where 
+import {
+  collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc,
+  serverTimestamp, query, where
 } from "firebase/firestore";
-
 import { db } from "../firebaseConfig";
-
-export async function getAllDonors() {
-  const snapshot = await getDocs(collection(db, "donors"));
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // 1. USERS
@@ -30,6 +21,13 @@ export const getAllUsers = async () => {
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 };
 
+export const getUserById = async (uid) => {
+  const docRef = doc(db, "users", uid);
+  const snap = await getDoc(docRef);
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() };
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // 2. DONORS
 ///////////////////////////////////////////////////////////////////////////////
@@ -41,10 +39,10 @@ export const createDonor = async (donorData) => {
   });
 };
 
-// export const getAllDonors = async () => {
-//   const snapshot = await getDocs(collection(db, "donors"));
-//   return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-// };
+export const getAllDonors = async () => {
+  const snapshot = await getDocs(collection(db, "donors"));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
 
 export const updateDonor = async (donorId, data) => {
   const ref = doc(db, "donors", donorId);
@@ -95,6 +93,15 @@ export const getAllHospitals = async () => {
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 };
 
+export const getHospitals = getAllHospitals;
+
+export const assignHospital = async (match) => {
+  const hospitals = await getHospitals();
+  const byCity = hospitals.find(h => h.city === match.location?.city);
+  const byState = hospitals.find(h => h.state === match.location?.state);
+  return byCity || byState || hospitals[0];
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // 5. MATCHING SYSTEM
 ///////////////////////////////////////////////////////////////////////////////
@@ -119,7 +126,7 @@ const calcDistance = (loc1, loc2) => {
   return Math.sqrt(dx * dx + dy * dy);
 };
 
-// MATCH LOGIC
+// Find best matches for a recipient
 export const findBestMatches = async (recipientId) => {
   const recipRef = doc(db, "recipients", recipientId);
   const recipSnap = await getDoc(recipRef);
@@ -147,10 +154,9 @@ export const findBestMatches = async (recipientId) => {
   donors = donors.map(d => {
     const distance = calcDistance(d.location, recipient.location);
     const score =
-      recipient.urgencyLevel * 10 -
-      distance +
-      (d.healthStatus === "good" ? 10 : 0);
-
+      (recipient.urgencyLevel === "High" ? 30 : recipient.urgencyLevel === "Medium" ? 15 : 0)
+      - distance
+      + (d.healthStatus === "good" ? 10 : 0);
     return { ...d, matchScore: score };
   });
 
@@ -161,18 +167,62 @@ export const findBestMatches = async (recipientId) => {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// 6. SAVE MATCH RESULT INTO FIRESTORE
+// 6. MATCHES
 ///////////////////////////////////////////////////////////////////////////////
 
 export const saveMatch = async (matchData) => {
-  return await addDoc(collection(db, "matches"), {
+  return await addDoc(collection(db, "Matches"), {
     ...matchData,
-    status: "pending",
+    status: "Pending",
     timestamp: serverTimestamp()
   });
 };
 
+// Get all matches
 export const getAllMatches = async () => {
-  const snap = await getDocs(collection(db, "matches"));
+  const snap = await getDocs(collection(db, "Matches"));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
+// Get single match by ID
+export const getMatchById = async (id) => {
+  const docRef = doc(db, "Matches", id);
+  const snap = await getDoc(docRef);
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() };
+};
+
+// Send a match request (do NOT create Matches document yet)
+export const sendMatchRequest = async (match) => {
+  await updateDoc(doc(db, "donors", match.donorId), {
+    incomingMatchRequest: {
+      recipientId: match.recipientId,
+      recipientName: match.recipientName,
+      organ: match.organ,
+      matchScore: match.matchScore,
+      location: match.location || {},
+    },
+    status: "Pending",
+  });
+};
+
+
+// Donor accepts a match
+export const donorAcceptMatch = async (matchId) => {
+  await updateDoc(doc(db, "Matches", matchId), { status: "Accepted by Donor" });
+  const match = await getMatchById(matchId);
+  if (match) {
+    await updateDoc(doc(db, "donors", match.donorId), { status: "Matched" });
+    await updateDoc(doc(db, "recipients", match.recipientId), { status: "Matched" });
+  }
+};
+
+// Donor rejects a match
+export const donorRejectMatch = async (matchId) => {
+  await updateDoc(doc(db, "Matches", matchId), { status: "Rejected by Donor" });
+  const match = await getMatchById(matchId);
+  if (match) {
+    await updateDoc(doc(db, "donors", match.donorId), { status: "Available" });
+    await updateDoc(doc(db, "recipients", match.recipientId), { status: "Available" });
+  }
 };

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { sendMatchRequest } from "../services/firestore";
 
 export default function MatchResults() {
   const [matches, setMatches] = useState([]);
@@ -9,6 +10,12 @@ export default function MatchResults() {
   }, []);
 
   if (matches.length === 0) return <p>No matches found.</p>;
+
+  function confirmMatch(match) {
+  sendMatchRequest(match)
+    .then(() => alert("Match request sent to donor!"))
+    .catch(err => console.error(err));
+}
 
   return (
     <div className="container">
@@ -21,6 +28,11 @@ export default function MatchResults() {
           <p><strong>Location:</strong> {m.location.city}, {m.location.state}</p>
           <p><strong>Match Score:</strong> {m.matchScore}</p>
           <p><strong>Status:</strong> {m.status}</p>
+          <button className="btn" onClick={() => confirmMatch(m)}>
+  Confirm Match
+</button>
+
+
         </div>
       ))}
     </div>
