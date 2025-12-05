@@ -6,6 +6,7 @@ import { getUserProfile } from "../services/userService";
 import { getAllRecipients, findBestMatches } from "../services/firestore";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { getAllDonors } from "../services/firestore";
 
 export default function RecipientDashboard() {
   const [recipientInfo, setRecipientInfo] = useState({});
@@ -55,6 +56,20 @@ export default function RecipientDashboard() {
 //       alert("Failed to find matches.");
 //     }
 //   };
+function calculateScore(donor, recipient) {
+  let score = 0;
+
+  if (donor.bloodGroup === recipient.bloodGroup) score += 40;
+
+  if (donor.location?.city === recipient.location?.city) score += 30;
+  if (donor.location?.state === recipient.location?.state) score += 20;
+
+  if (recipient.urgencyLevel === "High") score += 30;
+  if (recipient.urgencyLevel === "Medium") score += 15;
+
+  return score;
+}
+
 const findMatch = async () => {
   const donors = await getAllDonors(); // fetch all donors from Firestore
 

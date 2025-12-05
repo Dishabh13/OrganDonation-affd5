@@ -7,6 +7,12 @@ import {
 
 import { db } from "../firebaseConfig";
 
+export async function getAllDonors() {
+  const snapshot = await getDocs(collection(db, "donors"));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // 1. USERS
 ///////////////////////////////////////////////////////////////////////////////
@@ -35,10 +41,10 @@ export const createDonor = async (donorData) => {
   });
 };
 
-export const getAllDonors = async () => {
-  const snapshot = await getDocs(collection(db, "donors"));
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-};
+// export const getAllDonors = async () => {
+//   const snapshot = await getDocs(collection(db, "donors"));
+//   return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+// };
 
 export const updateDonor = async (donorId, data) => {
   const ref = doc(db, "donors", donorId);
