@@ -15,7 +15,7 @@ import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 
 export default function DonorDashboard() {
-  const [userProfile, setUserProfile] = useState(null);
+  const [setUserProfile] = useState(null);//userProfile
   const [donorInfo, setDonorInfo] = useState({});
   const [matchInfo, setMatchInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -80,18 +80,18 @@ if (d?.incomingMatchRequest) {
     const hospital = await assignHospital(matchInfo);
 
     // Create the actual Matches document
-    const matchRef = await addDoc(collection(db, "Matches"), {
-      donorId: donorInfo.id,
-      donorName: donorInfo.name,
-      recipientId: matchInfo.recipientId,
-      recipientName: matchInfo.recipientName,
-      organ: matchInfo.organ,
-      matchScore: matchInfo.matchScore,
-      hospitalId: hospital.id,
-      hospitalName: hospital.name,
-      status: "Accepted",
-      timestamp: serverTimestamp(),
-    });
+   // const matchRef = await addDoc(collection(db, "Matches"), {
+      // donorId: donorInfo.id,
+      // donorName: donorInfo.name,
+    //   recipientId: matchInfo.recipientId,
+    //   recipientName: matchInfo.recipientName,
+    //   organ: matchInfo.organ,
+    //   matchScore: matchInfo.matchScore,
+    //   hospitalId: hospital.id,
+    //   hospitalName: hospital.name,
+    //   status: "Accepted",
+    //   timestamp: serverTimestamp(),
+    // });
 
     // Update donor & recipient status
     await updateDoc(doc(db, "donors", donorInfo.id), {
