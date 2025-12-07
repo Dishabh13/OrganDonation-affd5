@@ -8,11 +8,7 @@ import { db } from "../firebaseConfig";
 
 import {
   getAllDonors,
-  updateDonor,
-  getMatchById,
-  donorAcceptMatch,
-  donorRejectMatch,
-  getAllMatches
+  updateDonor
 } from "../services/firestore";
 
 import { signOut } from "firebase/auth";
