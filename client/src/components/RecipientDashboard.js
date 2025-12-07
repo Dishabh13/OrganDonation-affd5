@@ -2,11 +2,11 @@
 import React, { useEffect, useState } from "react";
 import { auth } from "../firebaseConfig";
 import { getUserProfile } from "../services/userService";
-import { getAllRecipients, findBestMatches } from "../services/firestore";
+import { getAllRecipients } from "../services/firestore";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { getAllDonors } from "../services/firestore";
-import { sendMatchRequest, assignHospital } from "../services/firestore";
+import { sendMatchRequest } from "../services/firestore";
 
 
 export default function RecipientDashboard() {
